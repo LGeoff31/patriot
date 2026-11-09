@@ -1,0 +1,10 @@
+{
+  "name": "salespatriot",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-strip-types src/server.ts",
+    "extract": "node --experimental-strip-types src/extract.ts",
+    "test": "node --experimental-strip-types --test test/extract.test.ts"
+  }
+}

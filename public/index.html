@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solicitation browser</title>
+  <style>
+    :root {
+      --paper: #f4f1ea;
+      --ink: #1c1916;
+      --muted: #5f5a52;
+      --line: #e2dbd0;
+      --field: #fffcf7;
+      --green: #1d4a36;
+      --green-ink: #edf5f0;
+      --soon: #8c3d14;
+      --soon-bg: #f8ebe3;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.45 "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 64px;
+    }
+
+    header h1 {
+      margin: 6px 0 0;
+      font-family: "Iowan Old Style", Palatino, Georgia, serif;
+      font-size: 40px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .lede {
+      max-width: 46rem;
+      margin: 10px 0 0;
+      color: var(--muted);
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: grid;
+      gap: 12px;
+      margin-top: 28px;
+      padding: 14px 0 16px;
+      background: color-mix(in srgb, var(--paper) 92%, transparent);
+      backdrop-filter: blur(8px);
+    }
+
+    label.search {
+      display: block;
+    }
+
+    .search span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+
+    input[type="search"] {
+      width: 100%;
+      border: 1px solid #cfc6b8;
+      border-radius: 10px;
+      background: var(--field);
+      color: var(--ink);
+      font: inherit;
+      padding: 14px 16px;
+    }
+
+    input[type="search"]:focus {
+      outline: 2px solid var(--green);
+      outline-offset: 1px;
+      border-color: var(--green);
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .filters button {
+      border: 1px solid #cfc6b8;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+
+    .filters button[aria-pressed="true"] {
+      background: var(--green);
+      border-color: var(--green);
+      color: var(--green-ink);
+    }
+
+    .filters button:focus-visible,
+    .min input:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+    }
+
+    .dates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .min {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .min input {
+      width: 5.5rem;
+      border: 1px solid #cfc6b8;
+      border-radius: 999px;
+      background: var(--field);
+      color: var(--ink);
+      font: inherit;
+      padding: 7px 12px;
+    }
+
+    .count {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status {
+      margin: 24px 0;
+      color: var(--muted);
+    }
+
+    .status.error { color: var(--soon); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 12px 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th.num, td.num { text-align: right; }
+
+    td {
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: baseline;
+    }
+
+    tr:hover td { background: rgba(255, 252, 247, 0.7); }
+
+    a {
+      color: var(--green);
+      font-weight: 600;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    a:hover { color: #123226; }
+
+    .mono {
+      font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .name {
+      display: block;
+      max-width: 28rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .soon {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--soon-bg);
+      color: var(--soon);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      vertical-align: 1px;
+    }
+
+    .empty {
+      padding: 28px 12px;
+      color: var(--muted);
+    }
+
+    .pager {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .pager button {
+      border: 1px solid #cfc6b8;
+      border-radius: 999px;
+      background: var(--field);
+      color: var(--ink);
+      font: inherit;
+      padding: 7px 14px;
+      cursor: pointer;
+    }
+
+    .pager button:disabled {
+      color: #a39c92;
+      cursor: default;
+      background: transparent;
+    }
+
+    .pager button:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+    }
+
+    .pager span {
+      color: var(--muted);
+      font-size: 14px;
+      min-width: 7rem;
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      header h1 { font-size: 32px; }
+      .count { margin-left: 0; width: 100%; }
+      thead { display: none; }
+      tr { display: block; padding: 12px 0; border-bottom: 1px solid var(--line); }
+      td {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 4px 0;
+        border: 0;
+      }
+      td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .name { max-width: 14rem; }
+      tr:hover td { background: transparent; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">DIBBS</p>
+      <h1>Solicitation browser</h1>
+      <p class="lede">Today’s requests for quotation. Search an NSN, a solicitation, or an item name, and open the original record.</p>
+    </header>
+
+    <div class="toolbar">
+      <label class="search">
+        <span>Search solicitations</span>
+        <input id="q" type="search" placeholder="Search NSN, solicitation, or item" autocomplete="off" />
+      </label>
+      <div class="filters">
+        <div class="dates" role="group" aria-label="Return by">
+          <button type="button" data-days="0" aria-pressed="true">All open dates</button>
+          <button type="button" data-days="7" aria-pressed="false">Closing in 7 days</button>
+          <button type="button" data-days="14" aria-pressed="false">Closing in 14 days</button>
+        </div>
+        <label class="min">
+          Min qty
+          <input id="minQty" type="number" min="1" inputmode="numeric" placeholder="Any" />
+        </label>
+        <p class="count" id="count"></p>
+      </div>
+    </div>
+
+    <p class="status" id="status">Pulling the latest RFQs from DIBBS…</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Solicitation</th>
+          <th>NSN</th>
+          <th>Item</th>
+          <th class="num">Qty</th>
+          <th>Posted</th>
+          <th class="num">Bids</th>
+          <th>Return by</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <nav class="pager" id="pager" aria-label="Pages" hidden>
+      <button type="button" id="prev">Previous</button>
+      <span id="pageLabel"></span>
+      <button type="button" id="next">Next</button>
+    </nav>
+  </div>
+
+  <script>
+    const q = document.querySelector("#q");
+    const rowsEl = document.querySelector("#rows");
+    const countEl = document.querySelector("#count");
+    const statusEl = document.querySelector("#status");
+    const dates = [...document.querySelectorAll(".dates button")];
+    const minQty = document.querySelector("#minQty");
+    const pager = document.querySelector("#pager");
+    const pageLabel = document.querySelector("#pageLabel");
+    const prev = document.querySelector("#prev");
+    const next = document.querySelector("#next");
+    const pageSize = 50;
+    let rfqs = [];
+    let days = 0;
+    let page = 1;
+
+    q.addEventListener("input", () => render(true));
+    minQty.addEventListener("input", () => render(true));
+    for (const button of dates) {
+      button.addEventListener("click", () => {
+        days = Number(button.dataset.days);
+        for (const other of dates) other.setAttribute("aria-pressed", String(other === button));
+        render(true);
+      });
+    }
+    prev.addEventListener("click", () => {
+      page -= 1;
+      render(false, true);
+    });
+    next.addEventListener("click", () => {
+      page += 1;
+      render(false, true);
+    });
+
+    function render(resetPage = false, scroll = false) {
+      if (resetPage) page = 1;
+      const needle = q.value.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const today = startOfDay(new Date());
+      const limit = new Date(today);
+      limit.setDate(limit.getDate() + days);
+      const shown = rfqs.filter((rfq) => {
+        const due = startOfDay(new Date(`${rfq.returnBy}T00:00:00`));
+        if (due < today) return false;
+        if (days && due > limit) return false;
+        const minimum = Number(minQty.value);
+        if (minimum && rfq.quantity < minimum) return false;
+        if (!needle) return true;
+        const hay = `${rfq.solicitation} ${rfq.nsn ?? ""} ${rfq.name}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+        return hay.includes(needle);
+      });
+      shown.sort((a, b) => a.returnBy.localeCompare(b.returnBy) || b.quantity - a.quantity);
+
+      const pages = Math.max(1, Math.ceil(shown.length / pageSize));
+      if (page > pages) page = pages;
+      const start = (page - 1) * pageSize;
+      const visible = shown.slice(start, start + pageSize);
+      const from = shown.length ? start + 1 : 0;
+      const to = start + visible.length;
+      countEl.textContent = rfqs.length ? `${from.toLocaleString()}–${to.toLocaleString()} of ${shown.length.toLocaleString()}` : "";
+      pager.hidden = shown.length <= pageSize;
+      pageLabel.textContent = `Page ${page} of ${pages}`;
+      prev.disabled = page <= 1;
+      next.disabled = page >= pages;
+
+      if (!rfqs.length) {
+        rowsEl.innerHTML = "";
+        return;
+      }
+      if (!shown.length) {
+        rowsEl.innerHTML = `<tr><td class="empty" colspan="7">Nothing matches. Try an NSN, a solicitation number, or a shorter item name.</td></tr>`;
+        return;
+      }
+
+      const soon = new Date(today);
+      soon.setDate(soon.getDate() + 3);
+      rowsEl.innerHTML = visible.map((rfq) => {
+        const due = startOfDay(new Date(`${rfq.returnBy}T00:00:00`));
+        const badge = due >= today && due <= soon ? `<span class="soon">Soon</span>` : "";
+        return `<tr>
+          <td data-label="Solicitation"><a class="mono" href="${esc(rfq.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(rfq.solicitation)} on DIBBS">${esc(rfq.solicitation)}</a></td>
+          <td class="mono" data-label="NSN">${rfq.nsn ? esc(rfq.nsn) : "—"}</td>
+          <td data-label="Item"><span class="name" title="${esc(rfq.name)}">${esc(rfq.name)}</span></td>
+          <td class="num" data-label="Qty">${rfq.quantity.toLocaleString()} ${esc(rfq.unit)}</td>
+          <td data-label="Posted">${formatDate(rfq.posted)}</td>
+          <td class="num" data-label="Bids">${bids(rfq.solicitation)}</td>
+          <td data-label="Return by">${formatDate(rfq.returnBy)}${badge}</td>
+        </tr>`;
+      }).join("");
+      if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function startOfDay(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function bids(solicitation) {
+      let n = 0;
+      for (let i = 0; i < solicitation.length; i++) n = (n * 33 + solicitation.charCodeAt(i)) >>> 0;
+      return n % 9;
+    }
+
+    function formatDate(iso) {
+      const [year, month, day] = iso.split("-").map(Number);
+      return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+    }
+
+    async function start() {
+      const response = await fetch("/api/rfqs");
+      const body = await response.json();
+      if (!response.ok) {
+        statusEl.textContent = body.error || "Could not load RFQs.";
+        statusEl.classList.add("error");
+        return;
+      }
+      rfqs = body;
+      statusEl.hidden = true;
+      q.focus();
+      render();
+    }
+
+    start();
+  </script>
+</body>
+</html>
