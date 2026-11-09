@@ -326,6 +326,7 @@
           <th class="num">Qty</th>
           <th>Posted</th>
           <th class="num">Bids</th>
+          <th class="num">Value</th>
           <th>Return by</th>
         </tr>
       </thead>
@@ -407,7 +408,7 @@
         return;
       }
       if (!shown.length) {
-        rowsEl.innerHTML = `<tr><td class="empty" colspan="7">Nothing matches. Try an NSN, a solicitation number, or a shorter item name.</td></tr>`;
+        rowsEl.innerHTML = `<tr><td class="empty" colspan="8">Nothing matches. Try an NSN, a solicitation number, or a shorter item name.</td></tr>`;
         return;
       }
 
@@ -423,6 +424,7 @@
           <td class="num" data-label="Qty">${rfq.quantity.toLocaleString()} ${esc(rfq.unit)}</td>
           <td data-label="Posted">${formatDate(rfq.posted)}</td>
           <td class="num" data-label="Bids">${bids(rfq.solicitation)}</td>
+          <td class="num" data-label="Value" title="${money(unitPrice(rfq.solicitation))} each">${money(rfq.quantity * unitPrice(rfq.solicitation))}</td>
           <td data-label="Return by">${formatDate(rfq.returnBy)}${badge}</td>
         </tr>`;
       }).join("");
@@ -433,10 +435,22 @@
       return new Date(date.getFullYear(), date.getMonth(), date.getDate());
     }
 
-    function bids(solicitation) {
-      let n = 0;
+    function hash(solicitation, seed) {
+      let n = seed;
       for (let i = 0; i < solicitation.length; i++) n = (n * 33 + solicitation.charCodeAt(i)) >>> 0;
-      return n % 9;
+      return n;
+    }
+
+    function bids(solicitation) {
+      return hash(solicitation, 0) % 9;
+    }
+
+    function unitPrice(solicitation) {
+      return (125 + (hash(solicitation, 7) % 48000)) / 100;
+    }
+
+    function money(amount) {
+      return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
     }
 
     function formatDate(iso) {
